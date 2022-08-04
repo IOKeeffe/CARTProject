@@ -16,12 +16,14 @@ library(rpart)
 library(rpart.plot)
 library(caret)
 library(skimr)
+library(tidyverse)
 ```
 
 # Read in Data
 
 ```{r}
 boxoffice <- read.csv("BoxOfficeCollections.csv", header=TRUE, sep=",")
+boxoffice <- drop_na(boxoffice)
 skimmed <- skim(boxoffice)
 skimmed
 ```
