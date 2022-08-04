@@ -1,0 +1,61 @@
+---
+title: "Box Office CART Exploration"
+author: "David Miranda"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Load any packages, if any, that you use as part of your answers here
+# For example: 
+
+library(rpart)
+library(rpart.plot)
+library(caret)
+library(skimr)
+```
+
+# Read in Data
+
+```{r}
+boxoffice <- read.csv("BoxOfficeCollections.csv", header=TRUE, sep=",")
+skimmed <- skim(boxoffice)
+skimmed
+```
+
+# Data Fixing
+
+```{r}
+boxoffice$Imdb_genre <- as.factor(boxoffice$Imdb_genre)
+```
+
+# Making a Regression Tree
+
+```{r}
+fit <- rpart(Box.Office.Collection ~ Year + IMDB.Rating + Imdb_genre, data = boxoffice, method = "anova")
+par(xpd = NA)
+plot(fit)
+text(fit, use.n = TRUE)
+```
+
+# Pruning
+
+```{r}
+printcp(fit)
+bestcp <- fit$cptable[which.min(fit$cptable[,"xerror"]),"CP"]
+tree.pruned <- print(fit, cp = bestcp)
+par(xpd = NA)
+plot(tree.pruned)
+text(tree.pruned, use.n = TRUE)
+```
+
+# Better Plots
+
+Check out https://rpubs.com/minma/cart_with_rpart
+
+```{r}
+prp(tree.pruned, faclen = 0, cex = 0.8, extra = 1, box.palette = "auto")
+```

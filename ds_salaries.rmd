@@ -1,0 +1,47 @@
+---
+title: "ES Salaries CART Exploration"
+author: "David Miranda"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Load any packages, if any, that you use as part of your answers here
+# For example: 
+
+library(rpart)
+library(caret)
+library(skimr)
+```
+
+# Read in Data
+
+```{r}
+salaries <- read.csv("ds_salaries.csv", header=TRUE, sep=",")
+skimmed <- skim(salaries)
+skimmed
+```
+
+# Data Fixing
+
+```{r}
+
+```
+
+# Making a Regression Tree
+
+```{r}
+fit <- rpart(salary_in_usd ~ experience_level + employment_type + company_size, data = salaries, method = "anova")
+par(xpd = NA)
+plot(fit)
+text(fit, digits = 3)
+```
+
+# Better Plots
+
+```{r}
+prp(fit, faclen = 0, cex = 0.8, extra = 1, box.palette = "auto")
+```

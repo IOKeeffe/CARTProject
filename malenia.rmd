@@ -1,0 +1,42 @@
+---
+title: "Malenia CART Exploration"
+author: "David Miranda"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Load any packages, if any, that you use as part of your answers here
+# For example: 
+
+library(rpart)
+library(rpart.plot)
+library(caret)
+library(skimr)
+```
+
+# Read in Data
+
+```{r}
+malenia <- read.csv("malenia.csv", header=TRUE, sep=",")
+skimmed <- skim(malenia)
+skimmed
+```
+
+# Making a Regression Tree
+
+```{r}
+fit <- rpart(Host_Death_Time ~ Level + Host_Build + Location, data = malenia, control = rpart.control(cp = 0.001), method = "anova")
+par(xpd = NA)
+plot(fit)
+text(fit, use.n = TRUE)
+```
+
+# Better Plots
+
+```{r}
+prp(fit, faclen = 0, cex = 0.8, extra = 1, box.palette = "auto")
+```
