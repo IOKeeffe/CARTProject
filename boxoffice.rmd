@@ -34,6 +34,71 @@ skimmed
 boxoffice$Imdb_genre <- as.factor(boxoffice$Imdb_genre)
 ```
 
+# Mean sales
+```{r}
+scoreColor <- rgb(0.2, 0.6, 0.9, 1)
+boxOfficeColor <- "#69b3a2"
+
+boxoffice.yearly <- boxoffice %>%
+  group_by(Year) %>%
+  summarize(Sales = mean(Box.Office.Collection, na.rm=TRUE), Scores = mean(IMDB.Rating, na.rm=TRUE))
+scale = 25000000
+ggplot(boxoffice.yearly, aes(Year)) +
+  geom_line(aes(y = Sales), colour=boxOfficeColor) +
+  geom_line(aes(y = Scores * scale), colour=scoreColor) +   
+  scale_y_continuous(
+    name = "Box Office",
+    sec.axis = sec_axis(~./scale, name="Average Score")
+  ) +
+  theme(
+    axis.title.y = element_text(color = boxOfficeColor, size=13),
+    axis.title.y.right = element_text(color = scoreColor, size=13)
+  )
+```
+
+# Normality tests
+```{r}
+shapiro.test(boxoffice$Box.Office.Collection)
+ggqqplot(boxoffice$Box.Office.Collection)
+```
+
+# Forward and Backward Selection
+```{r}
+null.boxoffice.model <- lm(Box.Office.Collection ~ 1, data=boxoffice)
+full.boxoffice.model <- lm(Box.Office.Collection ~ Adjusted.Score + Score + IMDB.Rating + metascore + time_minute + Votes, data=boxoffice)
+
+null.boxoffice.formula <- as.formula("Box.Office.Collection ~ 1")
+full.boxoffice.formula <- as.formula("Box.Office.Collection ~ Adjusted.Score + Score + IMDB.Rating + metascore + time_minute + Votes")
+
+boxoffice.fwd.selection <- step(null.boxoffice.model, scope=full.boxoffice.formula, direction="forward", trace=1)
+summary(boxoffice.fwd.selection)
+
+```
+# Backwards Model Selection
+```{r}
+boxoffice.bwd.selection <- step(full.boxoffice.model, scope=null.boxoffice.formula, direction="backward", trace=1)
+summary(boxoffice.bwd.selection)
+```
+# Cross Validation
+```{r}
+# tc_kfold <- trainControl(method = "cv", number = 5, 
+#                          savePredictions = TRUE, classProbs = TRUE)
+# 
+# all_x <- boxoffice %>% 
+#   select(Adjusted.Score, Score, metascore, time_minute, Votes) %>% 
+#   as.data.frame()
+# 
+# all_y <- boxoffice %>% 
+#   pull(Box.Office.Collection)
+# 
+# set.seed(20140102)
+# m_kfold <- train(x = all_x, y = all_y,
+#                  method = "glm", family = "binomial",
+#                  trControl = tc_kfold)
+# 
+# m_kfold$results
+```
+
 # Making a Regression Tree
 
 ```{r}
