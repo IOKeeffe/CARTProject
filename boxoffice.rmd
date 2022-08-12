@@ -93,45 +93,6 @@ shapiro.test(boxoffice$Box.Office.Collection)
 ggqqplot(boxoffice$Box.Office.Collection)
 ```
 
-## Forward and Backward Selection
-```{r}
-#null.boxoffice.model <- lm(Box.Office.Collection ~ 1, data=boxoffice)
-#full.boxoffice.model <- lm(Box.Office.Collection ~ Adjusted.Score + Score + IMDB.Rating + metascore + #time_minute + Votes, data=boxoffice)
-#
-#null.boxoffice.formula <- as.formula("Box.Office.Collection ~ 1")
-#full.boxoffice.formula <- as.formula("Box.Office.Collection ~ Adjusted.Score + Score + IMDB.Rating + metascore #+ time_minute + Votes")
-#
-#boxoffice.fwd.selection <- step(null.boxoffice.model, scope=full.boxoffice.formula, direction="forward", #trace=1)
-#summary(boxoffice.fwd.selection)
-#
-```
-## Backwards Model Selection
-```{r}
-#boxoffice.bwd.selection <- step(full.boxoffice.model, scope=null.boxoffice.formula, direction="backward", #trace=1)
-#summary(boxoffice.bwd.selection)
-```
-# Cross Validation
-
-Maybe if we can get it to work.
-
-```{r}
-tc_kfold <- trainControl(method = "cv", number = 5)
-
-all_x <- boxoffice %>%
- select(Adjusted.Score, Score, metascore, time_minute, Votes) %>%
- as.data.frame()
-
-all_y <- boxoffice %>%
- pull(Box.Office.Collection)
-
-set.seed(20140102)
-m_kfold <- train(Box.Office.Collection ~ Year + Score + IMDB.Rating + Imdb_genre + time_minute,
-                method = "lm",
-                trControl = tc_kfold, data=boxoffice)
-
-m_kfold
-```
-
 # Making a Regression Tree
 
 To make a regression tree we will be using the rpart package. The rpart() function used below has a very similar structure to the lm/glm functions that we've been using. Note that the method can be excluded and the function will examine the outcome variable to determine if a regression or classification tree should be created. Specifying method = "anova" ensures that a regression tree is being made.
