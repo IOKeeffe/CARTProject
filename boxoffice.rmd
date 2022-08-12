@@ -17,6 +17,7 @@ library(rpart.plot)
 library(skimr)
 library(tidyverse)
 library(ggpubr)
+library(caret)
 ```
 
 # The Box Office Collections Dataset
@@ -114,22 +115,21 @@ ggqqplot(boxoffice$Box.Office.Collection)
 Maybe if we can get it to work.
 
 ```{r}
-# tc_kfold <- trainControl(method = "cv", number = 5, 
-#                         savePredictions = TRUE, classProbs = TRUE)
-# 
-# all_x <- boxoffice %>% 
-#  select(Adjusted.Score, Score, metascore, time_minute, Votes) %>% 
-#  as.data.frame()
-# 
-# all_y <- boxoffice %>% 
-#  pull(Box.Office.Collection)
-# 
-# set.seed(20140102)
-# m_kfold <- train(x = all_x, y = all_y,
-#                 method = "glm", family = "binomial",
-#                 trControl = tc_kfold)
-# 
-# m_kfold$results
+tc_kfold <- trainControl(method = "cv", number = 5)
+
+all_x <- boxoffice %>%
+ select(Adjusted.Score, Score, metascore, time_minute, Votes) %>%
+ as.data.frame()
+
+all_y <- boxoffice %>%
+ pull(Box.Office.Collection)
+
+set.seed(20140102)
+m_kfold <- train(Box.Office.Collection ~ Year + Score + IMDB.Rating + Imdb_genre + time_minute,
+                method = "lm",
+                trControl = tc_kfold, data=boxoffice)
+
+m_kfold
 ```
 
 # Making a Regression Tree
