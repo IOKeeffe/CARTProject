@@ -1,6 +1,6 @@
 ---
 title: "Box Office CART Exploration"
-author: "David Miranda"
+author: "David Miranda, Ian O'Keeffe, Ainsley McCutcheon"
 output:
   pdf_document: default
   html_document: default
@@ -14,27 +14,54 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(rpart)
 library(rpart.plot)
-library(caret)
 library(skimr)
 library(tidyverse)
+library(ggpubr)
 ```
 
-# Read in Data
+# The Box Office Collections Dataset
+
+This dataset was obtained from kaggle (https://www.kaggle.com/datasets/anotherbadcode/boxofficecollections)
+
+We'll be using the Box.Office.Collection variable as the outcome for this demonstration.
+
+Other information in the dataset be using is:
+
+  Numeric Values:
+    Score (Rotten Tomatoes Critic Score)
+    Adjusted.Score (Rotten Tomatoes Adjusted Critic Score)
+    IMDB.Rating
+    Imdb_genre
+    metascore
+    time_minute
+    Votes
+    Year
+  
+  Categorical Values:
+    Director
+    Cast
+    Consensus
+
+We'll be using Year, Score, IMDB.Rating, Imdb_genre, and time_minute in this example.
 
 ```{r}
 boxoffice <- read.csv("BoxOfficeCollections.csv", header=TRUE, sep=",")
 boxoffice <- drop_na(boxoffice)
-skimmed <- skim(boxoffice)
-skimmed
+str(boxoffice)
 ```
 
 # Data Fixing
+
+We'll be using rpart do create the regression tree which can handle character or factor variable types when using categorical data. This line of code is not necessary and is just included to demonstrate that the following code will run for either data type.
 
 ```{r}
 boxoffice$Imdb_genre <- as.factor(boxoffice$Imdb_genre)
 ```
 
 # Mean sales
+
+Before we look applying a regression tree to this dataset, lets take a look at the IMDB ratings and the Box Office Collections by year. You can see that while there is an increase in average collections by year, it doesn't visually appear to be linear. There are definitely some outlier (for instance King Kong in 1933), and there are very few movies included for older years. It's also noteworthy that average IMDB ratings do follow the same trend and are fairly consistent.
+
 ```{r}
 scoreColor <- rgb(0.2, 0.6, 0.9, 1)
 boxOfficeColor <- "#69b3a2"
@@ -47,8 +74,8 @@ ggplot(boxoffice.yearly, aes(Year)) +
   geom_line(aes(y = Sales), colour=boxOfficeColor) +
   geom_line(aes(y = Scores * scale), colour=scoreColor) +   
   scale_y_continuous(
-    name = "Box Office",
-    sec.axis = sec_axis(~./scale, name="Average Score")
+    name = "Box Office Collections",
+    sec.axis = sec_axis(~./scale, name="Average IMDB Rating")
   ) +
   theme(
     axis.title.y = element_text(color = boxOfficeColor, size=13),
@@ -56,53 +83,66 @@ ggplot(boxoffice.yearly, aes(Year)) +
   )
 ```
 
-# Normality tests
+# Data Requirements
+
+The only requirement for a Regression Tree is that the outcome variable is numeric and that all the input variables are either numeric or categorical. In fact the the outcome variable that we are looking at is not normally distributed as shown below.
+
 ```{r}
 shapiro.test(boxoffice$Box.Office.Collection)
 ggqqplot(boxoffice$Box.Office.Collection)
 ```
 
-# Forward and Backward Selection
+## Forward and Backward Selection
 ```{r}
-null.boxoffice.model <- lm(Box.Office.Collection ~ 1, data=boxoffice)
-full.boxoffice.model <- lm(Box.Office.Collection ~ Adjusted.Score + Score + IMDB.Rating + metascore + time_minute + Votes, data=boxoffice)
-
-null.boxoffice.formula <- as.formula("Box.Office.Collection ~ 1")
-full.boxoffice.formula <- as.formula("Box.Office.Collection ~ Adjusted.Score + Score + IMDB.Rating + metascore + time_minute + Votes")
-
-boxoffice.fwd.selection <- step(null.boxoffice.model, scope=full.boxoffice.formula, direction="forward", trace=1)
-summary(boxoffice.fwd.selection)
-
+#null.boxoffice.model <- lm(Box.Office.Collection ~ 1, data=boxoffice)
+#full.boxoffice.model <- lm(Box.Office.Collection ~ Adjusted.Score + Score + IMDB.Rating + metascore + #time_minute + Votes, data=boxoffice)
+#
+#null.boxoffice.formula <- as.formula("Box.Office.Collection ~ 1")
+#full.boxoffice.formula <- as.formula("Box.Office.Collection ~ Adjusted.Score + Score + IMDB.Rating + metascore #+ time_minute + Votes")
+#
+#boxoffice.fwd.selection <- step(null.boxoffice.model, scope=full.boxoffice.formula, direction="forward", #trace=1)
+#summary(boxoffice.fwd.selection)
+#
 ```
-# Backwards Model Selection
+## Backwards Model Selection
 ```{r}
-boxoffice.bwd.selection <- step(full.boxoffice.model, scope=null.boxoffice.formula, direction="backward", trace=1)
-summary(boxoffice.bwd.selection)
+#boxoffice.bwd.selection <- step(full.boxoffice.model, scope=null.boxoffice.formula, direction="backward", #trace=1)
+#summary(boxoffice.bwd.selection)
 ```
 # Cross Validation
+
+Maybe if we can get it to work.
+
 ```{r}
 # tc_kfold <- trainControl(method = "cv", number = 5, 
-#                          savePredictions = TRUE, classProbs = TRUE)
+#                         savePredictions = TRUE, classProbs = TRUE)
 # 
 # all_x <- boxoffice %>% 
-#   select(Adjusted.Score, Score, metascore, time_minute, Votes) %>% 
-#   as.data.frame()
+#  select(Adjusted.Score, Score, metascore, time_minute, Votes) %>% 
+#  as.data.frame()
 # 
 # all_y <- boxoffice %>% 
-#   pull(Box.Office.Collection)
+#  pull(Box.Office.Collection)
 # 
 # set.seed(20140102)
 # m_kfold <- train(x = all_x, y = all_y,
-#                  method = "glm", family = "binomial",
-#                  trControl = tc_kfold)
+#                 method = "glm", family = "binomial",
+#                 trControl = tc_kfold)
 # 
 # m_kfold$results
 ```
 
 # Making a Regression Tree
 
+To make a regression tree we will be using the rpart package. The rpart() function used below has a very similar structure to the lm/glm functions that we've been using. Note that the method can be excluded and the function will examine the outcome variable to determine if a regression or classification tree should be created. Specifying method = "anova" ensures that a regression tree is being made.
+
+The output of summary() is shown below which shows the creation of the tree. In the last table you can find the CP (complexity parameter) which is the r-squared value at each stage. The r-squared value is one of the determining factors for when to stop and looking at the output you can see that this occurs once the r-squared is less than 0.01 by default. The n-split shows the number of splits (nodes) that have been made. Also included are 3 measure of error: rel error, xerror (cross-validated error), and xstd (cross-validated standard error).
+
+From here you can display the regression tree with plot(). Included are some changes to make the tree slightly more readable, however it is still effectively unreadable.
+
 ```{r}
-fit <- rpart(Box.Office.Collection ~ Year + IMDB.Rating + Imdb_genre, data = boxoffice, method = "anova")
+fit <- rpart(Box.Office.Collection ~ Year + Score + IMDB.Rating + Imdb_genre + time_minute, data = boxoffice, method = "anova")
+printcp(fit)
 par(xpd = NA)
 plot(fit)
 text(fit, use.n = TRUE)
@@ -110,8 +150,9 @@ text(fit, use.n = TRUE)
 
 # Pruning
 
+As seen above, our current tree is not particularly useable right now. The last step for making a regression tree is "pruning" the tree back to a less complex one. In this example we've used the "xerror" value that we looked at previously to determine which tree is best. Look at back at the summary from above, we can see that the lowest xerror value was from the tree with 7 nodes which is diplayed below.
+
 ```{r}
-printcp(fit)
 bestcp <- fit$cptable[which.min(fit$cptable[,"xerror"]),"CP"]
 tree.pruned <- print(fit, cp = bestcp)
 par(xpd = NA)
@@ -121,7 +162,7 @@ text(tree.pruned, use.n = TRUE)
 
 # Better Plots
 
-Check out https://rpubs.com/minma/cart_with_rpart
+So we've pruned back our tree to be a bit more reasonable, but out plot is still not very readable. To improve this we can use the prp function from the rpart.plot package to easily improve the readability of the plot. Below is a fairly basic set of options to improve the visualization. You can make many tweaks to this plot to better organize you tree. Look at https://rpubs.com/minma/cart_with_rpart to look at all the options for customizing the plot.
 
 ```{r}
 prp(tree.pruned, faclen = 0, cex = 0.8, extra = 1, box.palette = "auto")
